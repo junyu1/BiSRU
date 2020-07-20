@@ -1,10 +1,3 @@
-# -*- coding: cp936 -*-
-'''Trains an SRU model on the IMDB sentiment classification task.
-The dataset is actually too small for LSTM to be of any advantage
-compared to simpler, much faster methods such as TF-IDF + LogReg.
-Notes:
-- Increase depth to obtain similar performance to LSTM
-'''
 from __future__ import print_function
 
 from keras.preprocessing import sequence
@@ -28,19 +21,18 @@ import tensorflow as tf
 import keras.backend.tensorflow_backend as KTF
 
 config = tf.ConfigProto()
-config.gpu_options.allow_growth = True  # 不全部占满显存, 按需分配
+config.gpu_options.allow_growth = True  
 sess = tf.Session(config=config)
-KTF.set_session(sess)  # 设置session
+KTF.set_session(sess) 
 
 batch_size = 128
 
 for depth in range(1,16) :
-#depth = 7
 
     print('Loading data...')
 
-    traindata = pd.read_csv('water/k=5/train.csv', header=None)
-    testdata = pd.read_csv('water/k=5/test.csv', header=None)
+    traindata = pd.read_csv('datasets/water/train.csv', header=None)
+    testdata = pd.read_csv('datasets/water/test.csv', header=None)
 
     X = traindata.iloc[: ,:-8]
     Y = traindata.iloc[:,-8:]
@@ -49,8 +41,6 @@ for depth in range(1,16) :
 
     X = np.array(X)
     X_test = np.array(X_test)
-    #print(X_test.shape)
-    #print(X)
 
 
     scaler = Normalizer().fit(X)
@@ -92,16 +82,13 @@ for depth in range(1,16) :
             model.add(Activation('relu'))
         model.add(Bidirectional(SRU(128,return_sequences=False,dropout=0.1)))
         model.add(Activation('relu'))
-    #model.add(Bidirectional(SRU(128,return_sequences=False,dropout=0.1,input_shape=(1,X_train.shape[2]))))
-    model.add(Dense(8,activation='softmax'))
+       model.add(Dense(8,activation='softmax'))
     
     model.summary()
     
-    # try using different optimizers and different optimizer configs
-    #softmax_crossentropy,binary_crossentropy,categorical_crossentropy
+
     model.compile(loss='binary_crossentropy',
               optimizer='adam',
-              #metrics=['accuracy'])
               metrics=['accuracy', precision, recall, f1])
 
     print('Train...')
@@ -110,7 +97,7 @@ for depth in range(1,16) :
 
     model.fit(X_train, y_train,
           batch_size=batch_size,
-          epochs=20,
+          epochs=8,
           validation_data=(X_test, y_test))
     endtime = datetime.datetime.now()
 
@@ -124,9 +111,9 @@ for depth in range(1,16) :
     print(y_test)
     print(np.argmax(y_test,axis=1))
 
-    with open('water/BiSRU_depth='+str(depth)+'/time.csv','w') as f6:
+    with open('result/water/BiSRU_depth='+str(depth)+'/time.csv','w') as f6:
         f6.write(str((endtime - starttime).seconds))
         
-    np.savetxt('water/BiSRU_depth='+str(depth)+'/result.csv',np.argmax(y_test,axis=1),delimiter=',',fmt='%d')
-    np.savetxt('water/BiSRU_depth='+str(depth)+'/predict.csv',p,delimiter=',',fmt='%d')
+    np.savetxt('result/water/BiSRU_depth='+str(depth)+'/result.csv',np.argmax(y_test,axis=1),delimiter=',',fmt='%d')
+    np.savetxt('result/water/BiSRU_depth='+str(depth)+'/predict.csv',p,delimiter=',',fmt='%d')
     
